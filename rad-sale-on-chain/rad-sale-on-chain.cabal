@@ -137,6 +137,60 @@ executable plutus-pab-nami-demo-generator
     plutus-ledger-api,
     plutus-tx
 
+executable plutus-pab-nami-rad-browser
+  import: lang
+  main-is: Main.hs
+  hs-source-dirs: pab-nami/pab-browser/app
+  other-modules:
+    RadSaleContracts
+  ghc-options:
+    -threaded
+  build-depends:
+    aeson -any,
+    bytestring -any,
+    serialise -any,
+    cardano-api,
+    containers,
+    base >= 4.9 && < 5,
+    openapi3 -any,
+    plutus-contract -any,
+    plutus-pab -any,
+    plutus-pab-executables -any,
+    playground-common -any,
+    prettyprinter -any,
+    purescript-bridge -any,
+    plutus-ledger -any,
+    plutus-ledger-constraints -any,
+    rad-sale-on-chain,
+    plutus-ledger-api,
+    plutus-tx,
+    text
+
+executable plutus-pab-nami-browser-demo-generator
+  import: lang
+  main-is: Generator.hs
+  hs-source-dirs: pab-nami/pab/app
+  other-modules:
+    RadSaleContracts
+  ghc-options:
+    -threaded
+  build-depends:
+    aeson -any,
+    base >= 4.9 && < 5,
+    openapi3 -any,
+    optparse-applicative -any,
+    plutus-contract -any,
+    plutus-pab -any,
+    plutus-pab-executables -any,
+    playground-common -any,
+    prettyprinter -any,
+    purescript-bridge -any,
+    plutus-ledger -any,
+    plutus-ledger-constraints -any,
+    rad-sale-on-chain,
+    plutus-ledger-api,
+    plutus-tx
+
 test-suite rad-sale-on-chain-tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs

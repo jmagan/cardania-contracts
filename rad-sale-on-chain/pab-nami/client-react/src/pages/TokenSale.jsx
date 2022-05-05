@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from 'react'
-import { paytoWalletAction } from '../utils/cardano';
+import { paytoWalletAction, startAction } from '../utils/cardano';
 
 export default function TokenSale() {
 
@@ -19,6 +19,8 @@ export default function TokenSale() {
           setWalletConnected(result)
           if (result) {
             console.log("Calling activate endpoint")
+
+            //startAction()
           }
         })
       )

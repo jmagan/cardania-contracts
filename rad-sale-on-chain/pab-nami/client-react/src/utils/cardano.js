@@ -1,7 +1,7 @@
 import * as wasm from '@emurgo/cardano-serialization-lib-browser'
 import Blake2b from 'blake2b';
 import { Buffer } from 'buffer';
-import {balanceTxImpl} from '../utils/nami'
+import { balanceTxImpl } from '../utils/nami'
 
 export class Cardano {
 
@@ -112,6 +112,77 @@ export async function paytoWalletAction(address, amount) {
             console.log(result)
             const contractInstanceId = await activateContractRequest()
             await payToWalletRequest(contractInstanceId.unContractInstanceId, address, amount)
+
+            setTimeout(async () => {
+                const contractInstanceStatus = await getContractInstanceStatus(contractInstanceId.unContractInstanceId)
+
+                const txCBOR = contractInstanceStatus.cicYieldedExportTxs[0].transaction
+
+                console.log(txCBOR)
+
+                const btx = await balanceTxImpl(txCBOR)
+
+                const sign = await window.cardano.signTx(btx, null)
+
+                // Function to convert from Hex string to Array Uint8
+                const fromHexString = hexString =>
+                    new Uint8Array(hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+                const transaction = wasm.Transaction.from_bytes(fromHexString(btx))
+
+                const signedTx = wasm.Transaction.new(transaction.body(), wasm.TransactionWitnessSet.from_bytes(fromHexString(sign)))
+
+                // TODO Unecessary when 'balanceTx' is merged in Nami wallet API
+                // padd with leading 0 if <16
+                const i2hex = i => ('0' + i.toString(16)).slice(-2)
+
+                // TODO Unecessary when 'balanceTx' is merged in Nami wallet API
+                const toHexString = uint8 => Array.from(uint8).map(i2hex).join('');
+
+
+                window.cardano.submitTx(toHexString(signedTx.to_bytes())).then(success => {
+                    console.log("success: " + success)
+                }).catch(error => {
+                    console.log("error: " + error)
+                })
+            }, 1000)
+        }
+    )
+}
+
+
+export async function startRequest(contractInstanceId, payload) {
+
+    const response = await fetch('/api/contract/instance/' + contractInstanceId + '/endpoint/start', {
+        method: "POST"
+        , headers: { 'Content-Type': 'application/json' }
+        , body: JSON.stringify(payload)
+    })
+
+    return await response.json()
+}
+
+
+export async function startAction() {
+
+    const payload = {
+        "sellerPubKeyHash": {
+            "getPubKeyHash": "84fab74abaff1d265aaf2110cd8185015a19aef93ca271cda261fd32"
+        },
+        "tokenCost": 100,
+        "tokenName": {
+            "unTokenName": "CardaniaFounderWhite"
+        },
+        "currencySymbol": {
+            "unCurrencySymbol": "641593ca39c5cbd3eb314533841d53e61ebf6ee7a0ec7c391652f31e"
+        }
+    }
+
+    activateContractRequest().then(
+        async result => {
+            console.log(result)
+            const contractInstanceId = await activateContractRequest()
+            await startRequest(contractInstanceId.unContractInstanceId, payload)
 
             setTimeout(async () => {
                 const contractInstanceStatus = await getContractInstanceStatus(contractInstanceId.unContractInstanceId)

@@ -39,6 +39,10 @@ module Script
     quantityOfNativeTokenAfter,
     correctScriptOutputValue,
     mkRadSaleOnChainValidator,
+    typedValidator,
+    validator,
+    SaleAction (..),
+    scrAddress
   )
 where
 
