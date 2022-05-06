@@ -149,70 +149,68 @@ payToWallet PayToWalletParams{amount, pkh, skh} = do
 
 
 buy'' ::
-  TokenSaleParam ->
-  Plutus.Contract.Contract () BrowserSaleSchema Data.Text.Text ()
-buy'' tokenSaleParam = do
+    TokenSaleParam ->
+  Plutus.Contract.Contract () SaleSchema Data.Text.Text ()
+buy tokenSaleParam = do
   Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
     Text.Printf.printf "started buy for token"
-  --pkh <- Plutus.Contract.ownPaymentPubKeyHash
-  --Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
-  --  Text.Printf.printf "pkh %s" (Prelude.show pkh)
-  Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
-    Text.Printf.printf "Getting address"
-
-  let address = Script.scrAddress tokenSaleParam
-
-  Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
-    Text.Printf.printf $ show address
-
-  Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
-    Text.Printf.printf "searching utxos"
   scriptUtxos <-
-    -- Data.Map.filter isSuitable
-    --   PlutusTx.Prelude.<$>
-    Plutus.Contract.utxosAt address
+    Plutus.Contract.utxosAt (scrAddress tokenSaleParam)
   Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
-    Text.Printf.printf "scriptUtxos downloaded" 
+    Text.Printf.printf "(scrAddress tokenSaleParam) %s" (Prelude.show (scrAddress tokenSaleParam))
+  Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
+    Text.Printf.printf "scriptUtxos %s" (Prelude.show scriptUtxos)
   let utxosList = Data.Map.toList scriptUtxos
-      utxoOref = PlutusTx.Prelude.fst (PlutusTx.Prelude.head utxosList)
-      remainingUtxosList = PlutusTx.Prelude.tail utxosList
-      totalValue =
+  Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
+    Text.Printf.printf "utxosList %s" (Prelude.show utxosList)
+  let totalValue =
         PlutusTx.Prelude.foldl
           ( \w (oref, o) ->
               w
                 PlutusTx.Prelude.<> Ledger._ciTxOutValue o
           )
           PlutusTx.Prelude.mempty
-          remainingUtxosList
-      totalValueOfToken = Value.valueOf totalValue (Script.currencySymbol tokenSaleParam) (Script.tokenName tokenSaleParam)
+          utxosList
+  Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
+    Text.Printf.printf "totalValue %s" (Prelude.show totalValue)
+  let totalValueOfAda = Ledger.Value.adaOnlyValue totalValue
+      totalValueOfToken = Plutus.V1.Ledger.Value.valueOf totalValue (currencySymbol tokenSaleParam) (tokenName tokenSaleParam)
       valueBackToScript =
-        Plutus.V1.Ledger.Api.singleton
-          (Script.currencySymbol tokenSaleParam)
-          (Script.tokenName tokenSaleParam)
-          (totalValueOfToken PlutusTx.Prelude.- 1)
+        totalValueOfAda
+          PlutusTx.Prelude.<> Plutus.V1.Ledger.Api.singleton
+            (currencySymbol tokenSaleParam)
+            (tokenName tokenSaleParam)
+            (totalValueOfToken PlutusTx.Prelude.- 1)
       redeemer =
         Plutus.V1.Ledger.Scripts.Redeemer PlutusTx.Prelude.$
-          PlutusTx.toBuiltinData Script.Buy
+          PlutusTx.toBuiltinData Buy
       lookups =
         Data.Monoid.mconcat
           [ Ledger.Constraints.typedValidatorLookups (typedValidator tokenSaleParam),
             Ledger.Constraints.unspentOutputs scriptUtxos,
-            Ledger.Constraints.otherData (Plutus.V1.Ledger.Api.Datum (Plutus.V1.Ledger.Api.toBuiltinData ()))
+            Ledger.Constraints.otherData
+              ( Plutus.V1.Ledger.Api.Datum
+                  (Plutus.V1.Ledger.Api.toBuiltinData ())
+              )
           ]
-
+      v =
+        Plutus.V1.Ledger.Api.singleton
+          (currencySymbol tokenSaleParam)
+          (tokenName tokenSaleParam)
+          1
+          PlutusTx.Prelude.<> Ledger.Ada.lovelaceValueOf minLovelace
       tx =
         PlutusTx.Prelude.mconcat
-          [ Plutus.Contract.Typed.Tx.collectFromScript scriptUtxos Script.Buy,
-            -- Ledger.Constraints.TxConstraints.mustBeSignedBy pkh,
+          [ Plutus.Contract.Typed.Tx.collectFromScript scriptUtxos Buy,
             Ledger.Constraints.TxConstraints.mustPayToTheScript
               ()
-              (Ledger.Ada.lovelaceValueOf minLovelace PlutusTx.Prelude.<> (totalValue PlutusTx.Prelude.<> valueBackToScript)),
+              valueBackToScript,
             Ledger.Constraints.TxConstraints.mustPayToPubKey
-              (PaymentPubKeyHash (sellerPubKeyHash tokenSaleParam))
-              (Ledger.Ada.lovelaceValueOf (tokenCost tokenSaleParam))
-            --Ledger.Constraints.TxConstraints.mustPayToPubKey
-            --  pkh
-            --  v
+              (Ledger.Address.PaymentPubKeyHash (sellerPubKeyHash tokenSaleParam))
+              (Ledger.Ada.lovelaceValueOf (tokenCost tokenSaleParam)),
+            Ledger.Constraints.TxConstraints.mustPayToPubKey
+              pkh
+              v
           ]
 
   Plutus.Contract.logInfo @Prelude.String PlutusTx.Prelude.$
@@ -230,20 +228,5 @@ buy'' tokenSaleParam = do
     Text.Printf.printf
       "made lovelace in auction %s for token (%s, %s)"
       (Prelude.show (tokenCost tokenSaleParam))
-      (Prelude.show (Script.currencySymbol tokenSaleParam))
-      (Prelude.show (Script.tokenName tokenSaleParam))
-  where
-    v =
-      Plutus.V1.Ledger.Api.singleton
-        (Script.currencySymbol tokenSaleParam)
-        (Script.tokenName tokenSaleParam)
-        1
-        PlutusTx.Prelude.<> Ledger.Ada.lovelaceValueOf minLovelace
-
-    isSuitable :: Ledger.ChainIndexTxOut -> PlutusTx.Prelude.Bool
-    isSuitable o =
-      Value.valueOf
-        (Ledger._ciTxOutValue o)
-        (Script.currencySymbol tokenSaleParam)
-        (Script.tokenName tokenSaleParam)
-        PlutusTx.Prelude.>= 1
+      (Prelude.show (currencySymbol tokenSaleParam))
+      (Prelude.show (tokenName tokenSaleParam))
