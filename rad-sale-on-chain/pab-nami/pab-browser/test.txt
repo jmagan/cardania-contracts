@@ -1,0 +1,5 @@
+Address {addressCredential = ScriptCredential 696add849842353cd83b9bc96102ef9ed57ac4e14ec3ae255cd437c6, addressStakingCredential = Nothing}
+
+[105,106,221,132,152,66,53,60,216,59,155,201,97,2,239,158,213,122,196,225,78,195,174,37,92,212,55,198]
+
+ValidatorHash $ toBuiltin $ ByteString.pack [105,106,221,132,152,66,53,60,216,59,155,201,97,2,239,158,213,122,196,225,78,195,174,37,92,212,55,198]
