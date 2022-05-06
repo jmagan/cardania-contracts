@@ -150,6 +150,7 @@ executable plutus-pab-nami-rad-browser
     bytestring -any,
     serialise -any,
     cardano-api,
+    hex-text,
     containers,
     base >= 4.9 && < 5,
     openapi3 -any,

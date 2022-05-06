@@ -20,7 +20,7 @@ export default function TokenSale() {
           if (result) {
             console.log("Calling activate endpoint")
 
-            //startAction()
+            startAction()
           }
         })
       )

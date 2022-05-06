@@ -5,7 +5,9 @@ module Main
   ( main,
     writeTPS,
     tokenSaleParamExample,
-    test
+    test,
+    getAddressTSPExample,
+    getAddressExample
 
   )
 where
@@ -27,6 +29,7 @@ import           PlutusTx              (Data (..))
 import qualified PlutusTx
 import qualified Ledger
 import Plutus.V1.Ledger.Value as Value
+import Plutus.V1.Ledger.Scripts as Scripts
 
 main :: Prelude.IO ()
 main = do
@@ -39,6 +42,12 @@ tokenSaleParamExample = TokenSaleParam
       Script.tokenName = Value.tokenName "CardaniaFounderWhite",
       Script.sellerPubKeyHash = "84fab74abaff1d265aaf2110cd8185015a19aef93ca271cda261fd32"
     }
+
+getAddressTSPExample :: Ledger.Address
+getAddressTSPExample = Script.scrAddress tokenSaleParamExample
+
+getAddressExample :: Ledger.Address
+getAddressExample = Ledger.scriptHashAddress $ Scripts.ValidatorHash "ij\221\132\152B5<\216;\155\201a\STX\239\158\213z\196\225N\195\174%\\\212\&7\198"
 
 writeJSON :: FilePath -> TokenSaleParam -> IO ()
 writeJSON file = LBS.writeFile file . encode 
